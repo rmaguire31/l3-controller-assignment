@@ -1,0 +1,99 @@
+\documentclass[a4paper,10pt,twocolumn]{article}
+
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage[style=ieee,backend=bibtex]{biblatex}
+	\bibliography{references.bib}
+\usepackage{booktabs}
+\usepackage[font={small},labelfont=sc]{caption}
+\usepackage{helvet}
+\usepackage[hidelinks]{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage[latin1]{inputenc}
+\usepackage{nomencl}
+\usepackage{microtype}
+\usepackage{pgfplots}
+    \pgfplotsset{compat=1.15}
+\usepackage{siunitx}
+\usepackage{tikz}
+    \usetikzlibrary{external}
+    	\tikzexternalize[prefix=tikz/]
+	\usetikzlibrary{positioning}
+\usepackage{titling}
+\usepackage{xspace}
+
+\renewcommand{\sfdefault}{phv}
+\renewcommand{\familydefault}{\sfdefault}
+
+\newcommand{\Matlab}{\textsc{Matlab}\textsuperscript{\textregistered}\xspace}
+
+\title{Controller Design in \Matlab}
+\author{Z0996690}
+\date{\today}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\includegraphics[width=0.1\textwidth]{img/Durham.png}}
+\chead{\thetitle}
+\rhead{\theauthor}
+\cfoot{\thepage}
+
+\begin{document}
+
+% Title page.
+\begin{titlepage}
+    \centering
+    \vspace*{\fill}
+    \includegraphics[width=0.5\textwidth]{img/Durham.png}\\
+    \vspace*{\fill}
+    \LARGE\thetitle\\
+    \vskip0.2em
+    \large Level 3 Control and Signal Processing\\
+    \vskip0.4em
+    \large\theauthor\\
+    \vskip0.4em
+    \large\thedate\\
+    \vspace*{\fill}
+\end{titlepage}
+
+% Abstract
+\twocolumn[{%
+\begin{@twocolumnfalse} \centering
+    \renewcommand{\abstractname}{\large Abstract}
+    \begin{abstract}
+        This report describes the design of two controllers for an industrial process in \Matlab. Each controller was designed to meet a different performance specification.
+    \end{abstract}
+    \vskip\parsep
+\end{@twocolumnfalse}
+}]
+
+% Acronyms
+% Lowercase latin
+\nomenclature[1s]{$s$}{Laplace domain variable.}
+\nomenclature[1t]{$t$}{Time domain variable.\hfill\si{\second}}
+
+% Lowercase greek
+% Uppercase latin
+\nomenclature[4G]{$G$}{Industrial plant process.}
+\nomenclature[4L]{$\mathcal{L}$}{Laplace transform operator.}
+
+% Uppercase greek
+
+\printnomenclature
+
+\section{Introduction}
+
+The industrial process transfer function, $G$, was prescribed as follows:
+\begin{equation} \label{eq:G}
+	G(s) = \frac{s + 1}{s(s^2 + 4s + 5)}
+\end{equation}
+
+\begin{figure}
+\end{figure}
+
+\printbibliography
+
+\end{document}
