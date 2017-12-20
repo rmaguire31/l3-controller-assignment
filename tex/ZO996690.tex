@@ -1,4 +1,4 @@
-\documentclass[a4paper,10pt,twocolumn]{article}
+\documentclass[a4paper,11pt,twocolumn]{article}
 
 \usepackage{amsmath}
 \usepackage[english]{babel}
@@ -14,10 +14,13 @@
 \usepackage{graphicx}
 \usepackage[latin1]{inputenc}
 \usepackage{nomencl}
+	\setlength{\nomitemsep}{0pt}
+	\makenomenclature
 \usepackage{microtype}
 \usepackage{pgfplots}
     \pgfplotsset{compat=1.15}
 \usepackage{siunitx}
+\usepackage{threeparttable}
 \usepackage{tikz}
     \usetikzlibrary{external}
     	\tikzexternalize[prefix=tikz/]
@@ -29,6 +32,8 @@
 \renewcommand{\familydefault}{\sfdefault}
 
 \newcommand{\Matlab}{\textsc{Matlab}\textsuperscript{\textregistered}\xspace}
+\newcommand{\sse}{\textsc{sse}\xspace}
+\newcommand{\Sse}{\textsc{Sse}\xspace}
 
 \title{Controller Design in \Matlab}
 \author{Z0996690}
@@ -64,7 +69,7 @@
 \begin{@twocolumnfalse} \centering
     \renewcommand{\abstractname}{\large Abstract}
     \begin{abstract}
-        This report describes the design of two controllers for an industrial process in \Matlab. Each controller was designed to meet a different performance specification.
+        This report describes the design of two controllers for an industrial plant process in \Matlab. Each controller was designed to meet a different performance specification.
     \end{abstract}
     \vskip\parsep
 \end{@twocolumnfalse}
@@ -72,27 +77,92 @@
 
 % Acronyms
 % Lowercase latin
-\nomenclature[1s]{$s$}{Laplace domain variable.}
-\nomenclature[1t]{$t$}{Time domain variable.\hfill\si{\second}}
+\nomenclature[1s]{$s$}{Laplace domain variable\hfill[\si{\radian\per\second}]}
+\nomenclature[1t]{$t$}{Time domain variable\hfill[\si{\second}]}
 
 % Lowercase greek
+\nomenclature[2f]{$\zeta$}{Damping factor}
+
 % Uppercase latin
-\nomenclature[4G]{$G$}{Industrial plant process.}
-\nomenclature[4L]{$\mathcal{L}$}{Laplace transform operator.}
+\nomenclature[4G]{$G$}{Industrial plant process transfer function}
+\nomenclature[4Gc]{$G_c$}{Controller transfer function}
+\nomenclature[4L]{$\mathcal{L}$}{Laplace transform operator}
+\nomenclature[4M0]{$M_0$}{Peak overshoot}
+\nomenclature[4SSE]{$SSE$}{Steady state error}
+\nomenclature[4T2]{$T_{2\%}$}{Two percent settling time\hfill[\si{\second}]}
+\nomenclature[4Tr]{$T_r$}{Rise time\hfill[\si{\second}]}
 
 % Uppercase greek
-
 \printnomenclature
 
 \section{Introduction}
+\section{Background}
+\section{Specification}
 
-The industrial process transfer function, $G$, was prescribed as follows:
+Figure~\ref{fig:closed} illustrates the closed loop system. The controller was designed to drive the output $y(s)$ of the industrial plant process to the desired output $r(s)$.
+
+\begin{figure}[h]
+	\centering
+	\footnotesize
+	\begin{tikzpicture}[node distance=0.06\textwidth]
+		\node (desire) {};
+		\node [draw,right=of desire,circle] (sum) {};
+			\draw (sum.north west) -- (sum.south east);
+			\draw (sum.north east) -- (sum.south west);
+		\node [draw,right=of sum,rectangle] (controller) {$G_c(s)$};
+		\node [draw,right=of controller,rectangle] (plant) {$G(s)$};
+		\node [fill,right=of plant] (branch) {};
+		\node [right=of branch] (output) {};
+		\node [below=of branch] (feedback1) {};
+		\node [below=of sum] (feedback2) {};
+
+		\draw [->] (desire) -- (sum.west);
+		\draw [->] (sum.east) -- (controller.west);
+		\draw [->] (controller.east) -- (plant.west);
+		\draw [->] (plant.east) -- (output);
+		\draw [->] (branch.south) -- (feedback1.north) -- (feedback2.north) -- (sum.south);
+
+		\node [anchor=south east] at (sum.north) {$+$};
+		\node [anchor=north west] at (sum.south) {$-$};
+
+		\node [anchor=south west] at (desire) {$r(s)$};
+		\node [anchor=south east] at (controller.west) {$e(s)$};
+		\node [anchor=south east] at (plant.west) {$u(s)$};
+		\node [anchor=south east] at (output) {$y(s)$};
+
+		\node [anchor=north] at (controller.south) {\textsc{Controller}};
+		\node [anchor=north] at (plant.south) {\textsc{Plant}};
+	\end{tikzpicture}
+	\caption{Block diagram of the closed loop system.}
+	\label{fig:closed}
+\end{figure}
+
+The transfer function for the industrial plant process $G(s)$ was given as follows:
 \begin{equation} \label{eq:G}
 	G(s) = \frac{s + 1}{s(s^2 + 4s + 5)}
 \end{equation}
+The transfer function for the controller $G_c(s)$ was chosen to meet the system performance specification detailed in Table~\ref{tab:spec}.
 
-\begin{figure}
-\end{figure}
+\begin{table}[h]
+	\centering
+	\footnotesize
+	\begin{threeparttable}
+		\caption{System perfomance specification.}
+		\label{tab:spec}
+		\begin{tabular}{@{}crrrr@{}}
+			\toprule
+			\textsc{Controller} &
+				$M_0$[\%] &
+				$T_r$[\si{\second}] &
+				$T_{2\%}$[\si{\second}] &
+				$SSE$[\%] \\
+			\cmidrule(r){1-1}\cmidrule(l){2-5}
+			1 &  5 & 1.0 &   4 & --- \\
+			2 & 20 & 0.5 & --- &   5 \\
+			\bottomrule
+		\end{tabular}
+	\end{threeparttable}
+\end{table}
 
 \printbibliography
 
