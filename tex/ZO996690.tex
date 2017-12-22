@@ -22,9 +22,11 @@
 \usepackage{siunitx}
 \usepackage{threeparttable}
 \usepackage{tikz}
+	\usetikzlibrary{calc}
     \usetikzlibrary{external}
     	\tikzexternalize[prefix=tikz/]
 	\usetikzlibrary{positioning}
+	\usetikzlibrary{shapes.geometric}
 \usepackage{titling}
 \usepackage{xspace}
 
@@ -104,30 +106,30 @@ Figure~\ref{fig:closed} illustrates the closed loop system. The controller was d
 \begin{figure}[h]
 	\centering
 	\footnotesize
-	\begin{tikzpicture}[node distance=0.06\textwidth]
+	\begin{tikzpicture}[node distance=0.06\textwidth and 0.06\textwidth]
 		\node (desire) {};
-		\node [draw,right=of desire,circle] (sum) {};
+		\node [draw,right=of desire,circle,minimum size=2.5em] (sum) {};
 			\draw (sum.north west) -- (sum.south east);
 			\draw (sum.north east) -- (sum.south west);
 		\node [draw,right=of sum,rectangle] (controller) {$G_c(s)$};
 		\node [draw,right=of controller,rectangle] (plant) {$G(s)$};
-		\node [fill,right=of plant] (branch) {};
+		\node [fill,right=of plant,rectangle] (branch) {};
 		\node [right=of branch] (output) {};
-		\node [below=of branch] (feedback1) {};
-		\node [below=of sum] (feedback2) {};
+		\node [below=of branch.center] (feedback1) {};
+		\node [below=of sum.center] (feedback2) {};
 
-		\draw [->] (desire) -- (sum.west);
-		\draw [->] (sum.east) -- (controller.west);
-		\draw [->] (controller.east) -- (plant.west);
-		\draw [->] (plant.east) -- (output);
-		\draw [->] (branch.south) -- (feedback1.north) -- (feedback2.north) -- (sum.south);
+		\draw [->] (desire) -- (sum);
+		\draw [->] (sum) -- (controller);
+		\draw [->] (controller) -- (plant);
+		\draw [->] (plant) -- (output);
+		\draw [->] (branch) -- (feedback1.center) -- (feedback2.center) -- (sum);
 
-		\node [anchor=south east] at (sum.north) {$+$};
-		\node [anchor=north west] at (sum.south) {$-$};
+		\node [anchor=west] at (sum.west) {\tiny$+$};
+		\node [anchor=south] at (sum.south) {\tiny$-$};
 
 		\node [anchor=south west] at (desire) {$r(s)$};
-		\node [anchor=south east] at (controller.west) {$e(s)$};
-		\node [anchor=south east] at (plant.west) {$u(s)$};
+		\node [anchor=south] at ($(sum.east)!0.5!(controller.west)$) {$e(s)$};
+		\node [anchor=south] at ($(controller.east)!0.5!(plant.west)$) {$u(s)$};
 		\node [anchor=south east] at (output) {$y(s)$};
 
 		\node [anchor=north] at (controller.south) {\textsc{Controller}};
@@ -163,6 +165,43 @@ The transfer function for the controller $G_c(s)$ was chosen to meet the system 
 		\end{tabular}
 	\end{threeparttable}
 \end{table}
+
+\begin{figure}[h]
+	\centering
+	\footnotesize
+	\begin{tikzpicture}[node distance=0.04\textwidth and 0.06\textwidth]
+		\node (error) {};
+		\node [fill,right=of error,rectangle] (branch) {};
+		\node [draw,right=of branch,rectangle] (i) {${K_i}/{s}$};
+		\node [draw,above=of i,rectangle] (p) {$K_p$};
+		\node [draw,below=of i,rectangle] (d) {${K_d}\cdot{s}$};
+		\node [draw,right=of i,circle,minimum size=2.5em] (sum) {};
+			\draw (sum.north west) -- (sum.south east);
+			\draw (sum.north east) -- (sum.south west);
+		\node [right=of sum] (output) {};
+
+		\draw [->] (branch) |- (p);
+		\draw [->] (error) -- (i);
+		\draw [->] (branch) |- (d);
+		\draw [->] (p) -| (sum);
+		\draw [->] (i) -- (sum);
+		\draw [->] (d) -| (sum);
+		\draw [->] (sum) -- (output);
+
+		\node [anchor=north] at (sum.north) {\tiny$+$};
+		\node [anchor=west] at (sum.west) {\tiny$+$};
+		\node [anchor=south] at (sum.south) {\tiny$+$};
+
+		\node [anchor=south west] at (error) {$e(s)$};
+		\node [anchor=south east] at (output) {$u(s)$};
+
+		\node [anchor=north] at (p.south) {\textsc{Proportional}};
+		\node [anchor=north] at (i.south) {\textsc{Integral}};
+		\node [anchor=north] at (d.south) {\textsc{Derrivative}};
+	\end{tikzpicture}
+	\caption{Block diagram of the PID controller}
+	\label{fig:pid}
+\end{figure}
 
 \printbibliography
 
