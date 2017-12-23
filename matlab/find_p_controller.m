@@ -1,4 +1,4 @@
-function [Kp] = find_p_controller()
+function [Kp] = find_p_controller(dirout)
 %% FIND_P_CONTROLLER Find Kp value of controller
 %   Detailed explanation goes here
 
@@ -31,7 +31,7 @@ for i = 1:length(spec)
         end
     end
     
-    for Gc = 5:1e-1:20
+    for Gc = 5:1e-2:20
         % Analyse step response of compensated system
         sys = feedback(series(Gc, G), 1);
         info = stepinfo(sys);
@@ -125,6 +125,45 @@ for i = 1:length(spec)
        
         hold('off');
     end
+end
+
+if nargin >= 1
+    mkdir(dirout);
+    
+    % Write root locus to file for use in pgf plots
+    [~,k] = rlocus(G);
+    [r,k] = rlocus(G, sort([k Kp(:)']));
+    rloc = ones(size(k,2), size(k,1) + 2*size(r,1));
+    rloc(:,1:size(k,1)) = k';
+    header = 'K';
+    for j = 1:size(r,1)
+        header = sprintf('%s\tre%d', header, j);
+        rloc(:,size(k,1)+2*j-1) = real(r(j,:))';
+        header = sprintf('%s\tim%d', header, j);
+        rloc(:,size(k,1)+2*j) = imag(r(j,:))';
+    end
+    fname = [dirout '/rlocus.dat'];
+    fid = fopen(fname, 'wt');
+    fprintf(fid, '%s\n', header);
+    fclose(fid);
+    dlmwrite(fname, rloc, '-append', 'delimiter', sprintf('\t'));
+
+    % Write step responses to file for use in pgfplots
+    t = 0:1e-2:20;
+    Gc = sort([1; Kp(:)]);
+    stepres = ones(length(t),1 + length(Gc));
+    stepres(:,1) = t';
+    header = 't';
+    for j = 1:length(Gc)
+        header = sprintf('%s\ty%.1f', header, Gc(j));
+        y = step(feedback(series(Gc(j), G), 1), t);
+        stepres(:,1+j) = y';
+    end
+    fname = [dirout '/stepres.dat'];
+    fid = fopen(fname, 'wt');
+    fprintf(fid, '%s\n', header);
+    fclose(fid);
+    dlmwrite(fname, stepres, '-append', 'delimiter', sprintf('\t'));
 end
 end
 
