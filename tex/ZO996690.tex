@@ -1,6 +1,7 @@
 \documentclass[a4paper,11pt,twocolumn]{article}
 
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage[english]{babel}
 \usepackage[style=ieee,backend=bibtex]{biblatex}
 	\bibliography{references.bib}
@@ -11,22 +12,27 @@
 \usepackage{geometry}
 \usepackage{fancyhdr}
 \usepackage{float}
+\usepackage[symbol]{footmisc}
 \usepackage{graphicx}
 \usepackage[latin1]{inputenc}
+\usepackage{listings}
+\usepackage{mathtools}
+\usepackage{microtype}
 \usepackage{nomencl}
 	\setlength{\nomitemsep}{0pt}
 	\makenomenclature
-\usepackage{microtype}
-\usepackage{pgfplots}
-    \pgfplotsset{compat=1.15}
 \usepackage{siunitx}
 \usepackage{threeparttable}
-\usepackage{tikz}
+\usepackage{tikz,pgfplots}
+    \pgfplotsset{compat=1.15,set layers}
+	\usetikzlibrary{angles}
 	\usetikzlibrary{calc}
     \usetikzlibrary{external}
     	\tikzexternalize[prefix=tikz/]
+	\usetikzlibrary{pgfplots.groupplots}
 	\usetikzlibrary{positioning}
 	\usetikzlibrary{shapes.misc}
+    \usepgfplotslibrary{fillbetween}
 \usepackage{titling}
 \usepackage{xspace}
 
@@ -47,6 +53,33 @@
 \chead{\thetitle}
 \rhead{\theauthor}
 \cfoot{\thepage}
+
+% Listings preamble
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
 
 \begin{document}
 
@@ -90,9 +123,9 @@
 \nomenclature[4G]{$G$}{Industrial plant process transfer function}
 \nomenclature[4Gc]{$G_c$}{Controller transfer function}
 \nomenclature[4L]{$\mathcal{L}$}{Laplace transform operator}
-\nomenclature[4M0]{$M_0$}{Peak overshoot}
-\nomenclature[4SSE]{$SSE$}{Steady state error}
-\nomenclature[4Tr]{$T_r$}{Rise time\hfill[\si{\second}]}
+\nomenclature[4M0]{$M_0$}{Peak overshoot\hfill[\si{\%}]}
+\nomenclature[4SSE]{$\mathit{SSE}$}{Steady state error}
+\nomenclature[4Tr]{$T_r$}{Eighty percent rise time\hfill[\si{\second}]}
 \nomenclature[4Ts]{$T_s$}{Two percent settling time\hfill[\si{\second}]}
 
 % Uppercase greek
@@ -101,7 +134,7 @@
 \section{Introduction}
 \section{Background}
 
-Figure~\ref{fig:closed} illustrates a closed loop system. The controller is designed to drive the output $y(s)$ of the plant process to the desired output $r(s)$.
+Figure~\ref{fig:closed} illustrates a closed loop system. The controller is designed to drive the output $y(s)$ of the plant process to the desired output $r(s)$ by minimising the error $e(s)$.
 
 \begin{figure}[h]
 	\centering
@@ -138,6 +171,32 @@ Figure~\ref{fig:closed} illustrates a closed loop system. The controller is desi
 	\caption{Block diagram of the closed loop system.}
 	\label{fig:closed}
 \end{figure}
+
+For low frequency applications the controller performance can be characterised by analysing the step response.
+
+Percentage overshoot $M_0$ is the the peak response in proportion to the final output value and is soley dependent on the damping factor $\zeta$ for second order systems:
+\begin{equation}
+	M_0 = \exp\left(-\frac{\pi\zeta}{\sqrt{1-\zeta^2}}\right)
+	\footnote{Equality holds for second order systems only, but may be used to approximate higher order characteristics.}
+\end{equation}
+The settling time $T_s$ of the controller is the time for the output oscillations to decay to within some margin of the final value: \SI{2}{\%} is used in this report. Settling time is also dependent on the natural frequency $\omega_n$:
+\begin{equation}
+	T_s = -\frac{\ln\left(2\%\right)}{\zeta\omega_n} \approx \frac{4}{\zeta\omega_n}
+	\footnotemark[\value{footnote}]
+\end{equation}
+The rise time of the controller is the time for the output to transition from \SIrange{10}{90}{\%} of the final value:
+\begin{equation}
+	T_r = \frac{\ln\left(90\%/10\%\right)}{\zeta\omega_n} \approx \frac{2.2}{\zeta\omega_n}
+	\footnotemark[\value{footnote}]
+\end{equation}
+These three parameters are typically specified as upper bounds and constitute the dynamic specification.
+
+In controller design there is a tradeoff between the dynamic specification and the steady state error. The steady state error is defined as follows:
+\begin{equation}
+	\mathit{SSE} \coloneqq \lim_{t\rightarrow\infty}{e(t)}
+\end{equation}
+
+One of the most common types of controller in industry is the PID controller, which can be easily implemented using microcontrollers.
 
 \begin{figure}[h]
 	\centering
@@ -176,6 +235,27 @@ Figure~\ref{fig:closed} illustrates a closed loop system. The controller is desi
 	\label{fig:pid}
 \end{figure}
 
+\begin{figure}[h]
+	\centering
+	\footnotesize
+	\begin{tikzpicture}[node distance=0.05\textwidth and 0.05\textwidth]
+		\node (error) {};
+		\node [draw,right=of error,rectangle] (C) {$K_c\dfrac{s+z_c}{s+p_c}$};
+		\node [right=of C] (output) {};
+
+		\draw [->] (error) -- (C);
+		\draw [->] (C) -- (output);
+
+		\node [anchor=south west] at (error) {$e(s)$};
+		\node [anchor=south east] at (output) {$u(s)$};
+		\node [right=of output] {$:|p_c| > |z_c|$};
+
+		\node [anchor=north] at (C.south) {\textsc{Phase-lead}};
+	\end{tikzpicture}
+	\caption{Block diagram of a phase-lead controller.}
+	\label{fig:pid}
+\end{figure}
+
 \section{Specification}
 
 The transfer function for the industrial plant process $G(s)$ was given as follows:
@@ -192,7 +272,7 @@ The transfer function $G_c(s)$ for the two controllers was chosen to meet the sy
 		\label{tab:spec}
 		\begin{tabular}{@{}crrrr@{}}
 			\toprule
-			\textsc{Controller} &
+			\textsc{System} &
 				$M_0$[\%] &
 				$T_r$[\si{\second}] &
 				$T_{2\%}$[\si{\second}] &
@@ -207,12 +287,12 @@ The transfer function $G_c(s)$ for the two controllers was chosen to meet the sy
 
 \section{Design}
 
-\begin{figure}
+\begin{figure}[h]
 	\centering
 	\footnotesize
 	\begin{tikzpicture}
 		\begin{axis}[
-			axis lines=center,
+			axis lines=middle,
 			xmin=-2.1,xmax=0.5,
 			ymin=-5,ymax=5,
 			xlabel={$\Re(s)$},ylabel={$\Im(s)$},
@@ -242,12 +322,12 @@ The transfer function $G_c(s)$ for the two controllers was chosen to meet the sy
 \end{figure}
 
 
-\begin{figure}
+\begin{figure}[h]
 	\centering
 	\footnotesize
 	\begin{tikzpicture}
 		\begin{axis}[
-			axis lines=center,
+			axis lines=middle,
 			xmin=-2.1,xmax=0.5,
 			ymin=-5,ymax=5,
 			xlabel={$\Re(s)$},ylabel={$\Im(s)$},
@@ -271,37 +351,469 @@ The transfer function $G_c(s)$ for the two controllers was chosen to meet the sy
 				node [draw,black,circle,inner sep=1.7pt]
 					at (current plot end) {};
 
-			\addplot [ultra thick,red,restrict x to domain=-0.80058:-0.7103] 
-				table [x={re1}, y={im1}] {data/rlocus.dat};
-			\addplot [ultra thick,red,restrict x to domain=-1.6449:-1.5997]
-				table [x={re2}, y={im2}] {data/rlocus.dat};
-			\addplot [ultra thick,red,restrict x to domain=-1.6449:-1.5997]
-				table [x={re3}, y={im3}] {data/rlocus.dat};
-			\node [draw,thick,red!50!black,rectangle,inner sep=2pt]
-				at (-0.75901,0) {};
-			\node [draw,thick,red!50!black,rectangle,inner sep=2pt]
-				at (-1.6205,-2.8132) {};
-			\node [draw,thick,red!50!black,rectangle,inner sep=2pt]
-				at (-1.6205,2.8132) {};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=6.53&&\thisrow{K}<=9.79?\thisrow{re1}:nan},y={im1}] {data/rlocus.dat};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=6.53&&\thisrow{K}<=9.79?\thisrow{re3}:nan},y={im2}] {data/rlocus.dat}
+				node [anchor=170] at (current plot begin) {\scriptsize$6.53$}
+				node [anchor=190] at (current plot end) {\scriptsize$9.79$};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=6.53&&\thisrow{K}<=9.79?\thisrow{re3}:nan},y={im3}] {data/rlocus.dat};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==8?\thisrow{re1}:nan},y={im1}] {data/rlocus.dat};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==8?\thisrow{re2}:nan},y={im2}] {data/rlocus.dat}
+				node [anchor=west] at (current plot end.east) {\scriptsize$8.00$};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==8?\thisrow{re3}:nan},y={im3}] {data/rlocus.dat};
 
-			\addplot [ultra thick,blue,restrict x to domain=-0.88392:-0.8242]
-				table [x={re1}, y={im1}] {data/rlocus.dat};
-			\addplot [ultra thick,blue,restrict x to domain=-1.5879:-1.558]
-				table [x={re2}, y={im2}] {data/rlocus.dat};
-			\addplot [ultra thick,blue,restrict x to domain=-1.5879:-1.558]
-				table [x={re3}, y={im3}] {data/rlocus.dat};
-			\node [draw,thick,blue!50!black,rectangle,inner sep=2pt]
-				at (-0.85877,0) {};
-			\node [draw,thick,blue!50!black,rectangle,inner sep=2pt]
-				at (-1.5706,-3.7196) {};
-			\node [draw,thick,blue!50!black,rectangle,inner sep=2pt]
-				at (-1.5706,3.7196) {};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=11.17&&\thisrow{K}<=17.1?\thisrow{re1}:nan},y={im1}] {data/rlocus.dat};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=11.17&&\thisrow{K}<=17.1?\thisrow{re3}:nan},y={im2}] {data/rlocus.dat}
+				node [anchor=east] at (current plot begin) {\scriptsize$11.2$}
+				node [anchor=east] at (current plot end) {\scriptsize$17.1$};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=11.17&&\thisrow{K}<=17.1?\thisrow{re3}:nan},y={im3}] {data/rlocus.dat};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==14?\thisrow{re1}:nan},y={im1}] {data/rlocus.dat};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==14?\thisrow{re2}:nan},y={im2}] {data/rlocus.dat}
+				node [anchor=east] at (current plot end.west) {\scriptsize$14.0$};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==14?\thisrow{re3}:nan},y={im3}] {data/rlocus.dat};
 		\end{axis}
 	\end{tikzpicture}
-	\caption{Chosen closed loop, pole locations and acceptable margins for gain \textcolor{red!}{\textsc{controller} 1} and \textcolor{blue!}{\textsc{controller} 2}, marked on the root locus. Gain compensation only.}
-	\label{fig:rlocus_Gc}
+	\caption{Chosen closed loop pole locations, gains and acceptable limits for the gain compensator $G_c$ designed for \textcolor{red!}{\textsc{system} 1} and \textcolor{blue!}{\textsc{system} 2}, marked on the root locus.}
+	\label{fig:rlocus_p}
 \end{figure}
 
+\begin{figure*}[t]
+	\centering
+	\footnotesize
+	\begin{tikzpicture}
+		\begin{axis}[
+			axis lines=middle,
+			xmin=-27,xmax=4,
+			ymin=-16,ymax=16,
+			restrict y to domain=-20:20,
+			xlabel={$\Re(s)$},ylabel={$\Im(s)$},
+		]
+			\addplot [thick,cyan]
+				table [x={re1}, y={im1}] {data/rlocus_lead1.dat}
+				node [draw,black,cross out,inner sep=1.8pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re2}, y={im2}] {data/rlocus_lead1.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]	
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re3}, y={im3}] {data/rlocus_lead1.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re4}, y={im4}] {data/rlocus_lead1.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=44.7&&\thisrow{K}<=159.6?\thisrow{re1}:nan},y={im1}] {data/rlocus_lead1.dat};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=44.7&&\thisrow{K}<=159.6?\thisrow{re3}:nan},y={im2}] {data/rlocus_lead1.dat}
+				node [anchor=225] at (current plot begin) {\scriptsize$44.7$}
+				node [anchor=190] at (current plot end) {\scriptsize$160$};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=44.7&&\thisrow{K}<=159.6?\thisrow{re3}:nan},y={im3}] {data/rlocus_lead1.dat};
+			\addplot [ultra thick,red]
+				table [x expr={\thisrow{K}>=44.7&&\thisrow{K}<=159.6?\thisrow{re4}:nan},y={im4}] {data/rlocus_lead1.dat};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==102?\thisrow{re1}:nan},y={im1}] {data/rlocus_lead1.dat};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==102?\thisrow{re2}:nan},y={im2}] {data/rlocus_lead1.dat}
+				node [anchor=south] at (current plot end.north) {\scriptsize$102$};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==102?\thisrow{re3}:nan},y={im3}] {data/rlocus_lead1.dat};
+			\addplot [thick,draw=none,mark=square,red!50!black]
+				table [x expr={\thisrow{K}==102?\thisrow{re4}:nan},y={im4}] {data/rlocus_lead1.dat};
+		\end{axis}
+	\end{tikzpicture}
+	\begin{tikzpicture}
+		\begin{axis}[
+			axis lines=middle,
+			xmin=-27,xmax=4,
+			ymin=-16,ymax=16,
+			restrict y to domain=-20:20,
+			xlabel={$\Re(s)$},ylabel={$\Im(s)$},
+		]
+			\addplot [thick,cyan]
+				table [x={re1}, y={im1}] {data/rlocus_lead2.dat}
+				node [draw,black,cross out,inner sep=1.8pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re2}, y={im2}] {data/rlocus_lead2.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]	
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re3}, y={im3}] {data/rlocus_lead2.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+			\addplot [thick,cyan]
+				table [x={re4}, y={im4}] {data/rlocus_lead2.dat}
+				node [draw,black,cross out,inner sep=1.7pt]
+					at (current plot begin) {}
+				node [draw,black,circle,inner sep=1.7pt]
+					at (current plot end) {};
+
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=55.2&&\thisrow{K}<=399.3?\thisrow{re1}:nan},y={im1}] {data/rlocus_lead2.dat};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=55.2&&\thisrow{K}<=399.3?\thisrow{re3}:nan},y={im2}] {data/rlocus_lead2.dat}
+				node [anchor=230] at (current plot begin) {\scriptsize$55.2$}
+				node [anchor=190] at (current plot end) {\scriptsize$399$};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=55.2&&\thisrow{K}<=399.3?\thisrow{re3}:nan},y={im3}] {data/rlocus_lead2.dat};
+			\addplot [ultra thick,blue]
+				table [x expr={\thisrow{K}>=55.2&&\thisrow{K}<=399.3?\thisrow{re4}:nan},y={im4}] {data/rlocus_lead2.dat};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==227?\thisrow{re1}:nan},y={im1}] {data/rlocus_lead2.dat};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==227?\thisrow{re2}:nan},y={im2}] {data/rlocus_lead2.dat}
+				node [anchor=240] at (current plot end.north) {\scriptsize$227$};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==227?\thisrow{re3}:nan},y={im3}] {data/rlocus_lead2.dat};
+			\addplot [thick,draw=none,mark=square,blue!50!black]
+				table [x expr={\thisrow{K}==227?\thisrow{re4}:nan},y={im4}] {data/rlocus_lead2.dat};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Chosen closed loop pole locations, gains and acceptable limits for the phase-lead compensator $G_c$ designed for \textcolor{red!}{\textsc{system} 1} and \textcolor{blue!}{\textsc{system} 2}, marked on the compensated root loci.}
+	\label{fig:rlocus_lead}
+\end{figure*}
+
 \printbibliography
+
+\appendix
+\onecolumn
+
+\section{Controller Derivations}
+
+\subsection{Phase-lead Compensator}
+
+Figure~\ref{fig:derive_lead} illustrates how the added poles and zeroes were chosen when designing the phase-lead controllers.
+
+\begin{figure}[h]
+	\centering
+	\footnotesize
+	\begin{tikzpicture}[>=stealth]
+		\begin{groupplot}[
+		    group style={
+		        group size=2 by 1,
+		        horizontal sep=3pt
+		    },
+		    axis lines=middle,
+		    ymin=-5, ymax=5,
+		    restrict y to domain=-20:20,
+		    x=0.6cm, xtick distance=2,
+	    ]
+			\nextgroupplot[
+				hide y axis,
+				xmin=-21,xmax=-19,
+				axis line style={-|}
+			]{
+	        	\addplot [dotted,black!50,domain=-20:20,on layer=axis grid] (-19, {x});
+
+				\addplot [thick,cyan]
+					table [x={re4}, y={im4}] {data/rlocus_lead1.dat}
+					node [draw,red,cross out,inner sep=1.7pt] (p4)
+						at (current plot begin) {}
+					node [draw,red,circle,inner sep=1.7pt] (z4)
+						at (current plot end) {};
+
+				\node [draw,thick,red,rectangle,inner sep=2pt] (s1)
+					at (-4,-3) {};
+				\node [draw,thick,red,rectangle,inner sep=2pt] (s2)
+					at (-4,3) {};
+
+				\node [anchor=south] at (p4.north)
+					{\textcolor{red!50!black}{\scriptsize$-20.5$}};
+
+				\begin{pgfonlayer}{axis grid}
+					\begin{scope}
+						\clip (axis cs:-40,-20) rectangle (axis cs:-19,20);
+
+						\coordinate (o) at (s2.center);
+						\coordinate (c5) at (p4.center);
+						\coordinate (o5) at (p4.east);
+
+						\pic [fill=red!10,draw=red!50!black!30,thin,->,angle radius=16]
+							{angle=o5--c5--o};
+
+						\draw [thin,red!50!black!50,<->] (s2) -- (p4.center);
+					\end{scope}
+				\end{pgfonlayer}
+			}
+			\nextgroupplot[
+				xmin=-7,xmax=1.5,
+				xlabel={$\Re(s)$},ylabel={$\Im(s)$},
+				axis line style={|->}
+			]{
+	        	\addplot [dotted,black!50,domain=-20:20,on layer=axis grid] (-7, {x});
+
+				\addplot [thick,cyan]
+					table [x={re1}, y={im1}] {data/rlocus_lead1.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p1)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z1)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re2}, y={im2}] {data/rlocus_lead1.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p2)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z2)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re3}, y={im3}] {data/rlocus_lead1.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p3)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z3)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re4}, y={im4}] {data/rlocus_lead1.dat}
+					node [draw,red,cross out,inner sep=1.7pt] (p4)
+						at (current plot begin) {}
+					node [draw,red,circle,inner sep=1.7pt] (z4)
+						at (current plot end) {};
+
+				\node [draw,thick,red,rectangle,inner sep=2pt] (s1)
+					at (axis cs:-4,-3) {};
+				\node [draw,thick,red,rectangle,inner sep=2pt] (s2)
+					at (axis cs:-4,3) {};
+
+				\node [anchor=north]
+					at (s1.south) {\textcolor{red!50!black}{\scriptsize$-4-3\mathrm{j}$}};
+				\node [anchor=south]
+					at (s2.north) {\textcolor{red!50!black}{\scriptsize$-4+3\mathrm{j}$}};
+
+	        	\addplot [name path=O,draw=none,domain=-20:20,samples=2] (20,{x});
+	        	\addplot [name path=Ts,dashed,yellow!50!black!50,domain=-20:20,samples=2,on layer=axis grid] ({ln(0.02)/4},{x});
+	        	\addplot [name path=Tr,dashed,yellow!50!black!50,domain=-20:20,samples=2,on layer=axis grid] ({ln(1/9)/1},{x});
+	        	\addplot [name path=M0,dashed,yellow!50!black!50,domain=-20:20,on layer=axis grid] ({abs(x)*ln(0.05)/pi}, {x});
+	    		\addplot [yellow!20] fill between[of=Ts and O,on layer=axis background];
+	    		\addplot [yellow!20] fill between[of=Tr and O,on layer=axis background];
+	    		\addplot [yellow!20] fill between[of=M0 and O,on layer=axis background];
+
+				\begin{pgfonlayer}{axis grid}
+					\begin{scope}
+						\clip (axis cs:-7,-20) rectangle (axis cs:20,20);
+
+						\coordinate (o) at (s2.center);
+						\coordinate (c1) at (p1.center);
+						\coordinate (o1) at (p1.east);
+						\coordinate (c2) at (z1.center);
+						\coordinate (o2) at (z1.east);
+						\coordinate (c3) at (p2.center);
+						\coordinate (o3) at (p2.east);
+						\coordinate (c4) at (p3.center);
+						\coordinate (o4) at (p3.east);
+						\coordinate (c5) at (p4.center);
+						\coordinate (o5) at (p4.east);
+						\coordinate (c6) at (z4.center);
+						\coordinate (o6) at (z4.east);
+
+						\pic [fill=red!10,draw=red!50!black!30,thin,->,angle radius=8]
+							{angle=o1--c1--o};
+						\pic [fill=red!10,draw=red!50!black!30,thin,<-,angle radius=8]
+							{angle=o2--c2--o};
+						\pic [fill=red!10,draw=red!50!black!30,thin,->,angle radius=8]
+							{angle=o3--c3--o};
+						\pic [fill=red!10,draw=red!50!black!30,thin,->,angle radius=8]
+							{angle=o4--c4--o};
+						\pic [fill=red!10,draw=red!50!black!30,thin,->,angle radius=8]
+							{angle=o5--c5--o};
+						\pic [fill=red!10,draw=red!50!black!30,thin,<-,angle radius=8]
+							{angle=o6--c6--o};
+
+						\draw [thin,red!50!black!50,<->] (s2) -- (c1);
+						\draw [thin,red!50!black!50,<->] (s2) -- (z1);
+						\draw [thin,red!50!black!50,<->] (s2) -- (c3);
+						\draw [thin,red!50!black!50,<->] (s2) -- (c4);
+						\draw [thin,red!50!black!50,<->] (s2) -- (c5);
+						\draw [thin,red!50!black!50,<->] (s2) -- (z4);
+					\end{scope}
+				\end{pgfonlayer}
+			}
+		\end{groupplot}
+	\end{tikzpicture}
+	\begin{tikzpicture}[>=stealth]
+		\begin{groupplot}[
+		    group style={
+		        group size=2 by 1,
+		        horizontal sep=3pt
+		    },
+		    axis lines=middle,
+		    ymin=-8, ymax=8,
+		    restrict y to domain=-20:20,
+		    x=0.6cm, xtick distance=2,
+	    ]
+			\nextgroupplot[
+				hide y axis,
+				xmin=-27,xmax=-25,
+				axis line style={-|}
+			]{
+	        	\addplot [dotted,black!50,domain=-20:20,on layer=axis grid] (-25, {x});
+
+				\addplot [thick,cyan]
+					table [x={re4}, y={im4}] {data/rlocus_lead2.dat}
+					node [draw,blue,cross out,inner sep=1.7pt] (p4)
+						at (current plot begin) {}
+					node [draw,blue,circle,inner sep=1.7pt] (z4)
+						at (current plot end) {};
+
+				\node [draw,thick,blue,rectangle,inner sep=2pt] (s1)
+					at (axis cs:-6,-6) {};
+				\node [draw,thick,blue,rectangle,inner sep=2pt] (s2)
+					at (axis cs:-6,6) {};
+
+				\node [anchor=south] at (p4.north)
+					{\textcolor{blue!50!black}{\scriptsize$-26.4$}};
+
+				\begin{pgfonlayer}{axis grid}
+					\begin{scope}
+						\clip (axis cs:-40,-20) rectangle (axis cs:-25,20);
+
+						\coordinate (o) at (s2.center);
+						\coordinate (c5) at (p4.center);
+						\coordinate (o5) at (p4.east);
+
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,->,angle radius=16]
+							{angle=o5--c5--o};
+
+						\draw [thin,blue!50!black!50,<->] (s2) -- (p4.center);
+					\end{scope}
+				\end{pgfonlayer}
+			}
+			\nextgroupplot[
+				xmin=-7,xmax=1.5,
+				xlabel={$\Re(s)$},ylabel={$\Im(s)$},
+				axis line style={|->}
+			]{
+	        	\addplot [dotted,black!50,domain=-20:20,on layer=axis grid] (-7, {x});
+
+				\addplot [thick,cyan]
+					table [x={re1}, y={im1}] {data/rlocus_lead2.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p1)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z1)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re2}, y={im2}] {data/rlocus_lead2.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p2)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z2)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re3}, y={im3}] {data/rlocus_lead2.dat}
+					node [draw,black,cross out,inner sep=1.7pt] (p3)
+						at (current plot begin) {}
+					node [draw,black,circle,inner sep=1.7pt] (z3)
+						at (current plot end) {};
+				\addplot [thick,cyan]
+					table [x={re4}, y={im4}] {data/rlocus_lead2.dat}
+					node [draw,blue,cross out,inner sep=1.7pt] (p4)
+						at (current plot begin) {}
+					node [draw,blue,circle,inner sep=1.7pt] (z4)
+						at (current plot end) {};
+
+				\node [draw,thick,blue,rectangle,inner sep=2pt] (s1)
+					at (axis cs:-6,-6) {};
+				\node [draw,thick,blue,rectangle,inner sep=2pt] (s2)
+					at (axis cs:-6,6) {};
+
+				\node [anchor=north]
+					at (s1.south) {\textcolor{blue!50!black}{\scriptsize$-6-6\mathrm{j}$}};
+				\node [anchor=south]
+					at (s2.north) {\textcolor{blue!50!black}{\scriptsize$-6+6\mathrm{j}$}};
+
+	        	\addplot [name path=O,draw=none,domain=-20:20,samples=2] (20,{x});
+	        	\addplot [name path=Tr,dashed,yellow!50!black!50,domain=-20:20,samples=2,on layer=axis grid] ({ln(1/9)/0.5},{x});
+	        	\addplot [name path=M0,dashed,yellow!50!black!50,domain=-20:20,on layer=axis grid] ({abs(x)*ln(0.20)/pi}, {x});
+	    		\addplot [yellow!20] fill between[of=Tr and O,on layer=axis background];
+	    		\addplot [yellow!20] fill between[of=M0 and O,on layer=axis background];
+
+				\begin{pgfonlayer}{axis grid}
+					\begin{scope}
+						\clip (axis cs:-7,-20) rectangle (axis cs:20,20);
+
+						\coordinate (o) at (s2.center);
+						\coordinate (c1) at (p1.center);
+						\coordinate (o1) at (p1.east);
+						\coordinate (c2) at (z1.center);
+						\coordinate (o2) at (z1.east);
+						\coordinate (c3) at (p2.center);
+						\coordinate (o3) at (p2.east);
+						\coordinate (c4) at (p3.center);
+						\coordinate (o4) at (p3.east);
+						\coordinate (c5) at (p4.center);
+						\coordinate (o5) at (p4.east);
+						\coordinate (c6) at (z4.center);
+						\coordinate (o6) at (z4.east);
+
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,->,angle radius=8]
+							{angle=o1--c1--o};
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,<-,angle radius=8]
+							{angle=o2--c2--o};
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,->,angle radius=8]
+							{angle=o3--c3--o};
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,->,angle radius=8]
+							{angle=o4--c4--o};
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,->,angle radius=8]
+							{angle=o5--c5--o};
+						\pic [fill=blue!10,draw=blue!50!black!30,thin,<-,angle radius=8]
+							{angle=o6--c6--o};
+
+						\draw [thin,blue!50!black!50,<->] (s2) -- (c1);
+						\draw [thin,blue!50!black!50,<->] (s2) -- (z1);
+						\draw [thin,blue!50!black!50,<->] (s2) -- (c3);
+						\draw [thin,blue!50!black!50,<->] (s2) -- (c4);
+						\draw [thin,blue!50!black!50,<->] (s2) -- (c5);
+						\draw [thin,blue!50!black!50,<->] (s2) -- (z4);
+					\end{scope}
+				\end{pgfonlayer}
+			}
+		\end{groupplot}
+	\end{tikzpicture}
+	\caption{Ideal phase-lead compensated root locus for \textcolor{red!}{\textsc{system} 1} and \textcolor{blue!}{\textsc{system} 2}, designed using the angle and magnitude criteria.}
+	\label{fig:derive_lead}
+\end{figure}
+
+The yellow region marks the second order closed loop pole locations which did not satisfy the performance specification and the desired closed loop poles were placed outside this region. The added zero was placed on the real axis in line with desired closed loop poles. The angle criterion was used to uniquely identify the added real pole which ensured the root locus passed through the desired pole locations. This was done programmatically in \Matlab:
+\begin{lstlisting}[language=Matlab,style=mystyle,morekeywords={mod,pole,zero,dcgain}]
+function [zc, pc, Kc] = find_lead_compensator(G, s)
+	% Place real zero `zc' below desired pole `s'
+	zc = real(s);
+	% Find real pole `pc' using angle criterion
+	th = sum(angle(s-pole(G))) - sum(angle(s-zero(G))) - angle(s-zc);
+	th = mod(th-pi, 2*pi);
+	pc = zc + imag(s)/tan(th);
+	% Find gain `Kc' using magnitude criterion
+	K  = prod(abs(s-pole(G)))/prod(abs(s-zero(G))) * abs(s-pc)/abs(s-zc);
+	Kc = K / dcgain(G);
+end % function
+\end{lstlisting}
+
+The magnitude criterion was used to find the gain corresponding to this desired pole, which can be seen on lines 9 and 10, but this was not the gain used in the final controller. The gain was varied in \Matlab \texttt{sisotool()} to find the limiting gains which met the performance specification for each system. The median gains were chosen for the optimum controllers.
 
 \end{document}
