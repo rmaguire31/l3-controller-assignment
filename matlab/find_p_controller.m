@@ -1,9 +1,17 @@
-function [Kp] = find_p_controller(dirout)
+function [Kp] = find_p_controller(Gc, dirout, suffix)
 %% FIND_P_CONTROLLER Find Kp value of controller
 %   Detailed explanation goes here
 
 s = tf('s');
 G = (s + 1)/(s*(s^2 + 4*s + 5));
+if nargin >= 1
+    sys = series(Gc, G);
+else
+    sys = G;
+end
+if nargin < 3
+    suffix = [];
+end
 
 % Perfomance spec
 spec = struct(...
@@ -31,11 +39,11 @@ for i = 1:length(spec)
         end
     end
     
-    for Gc = 5:1e-2:20
+    for Kc = 5:1e-1:400
         % Analyse step response of compensated system
-        sys = feedback(series(Gc, G), 1);
-        info = stepinfo(sys);
-        info.SSE= 100*abs(dcgain(sys) - 1);
+        sys0 = feedback(series(Kc, sys), 1);
+        info = stepinfo(sys0);
+        info.SSE= 100*abs(dcgain(sys0) - 1);
         
         % Check results against specification
         fields = fieldnames(targets);
@@ -46,7 +54,7 @@ for i = 1:length(spec)
         end
         if pass
             % Save this gain
-            Kp_values{i}(end+1) = Gc;
+            Kp_values{i}(end+1) = Kc;
         end
     end
     if ~isempty(Kp_values{i})
@@ -57,21 +65,21 @@ for i = 1:length(spec)
         % Plot pole locations.
         f = figure();
         ax = axes(f);
-        rlocusplot(ax, G, 'k');
+        rlocusplot(ax, sys, 'k');
         ax.XLim = [-2.5 0];
         ax.YLim = [-5 5];
         hold('on');
-        rlocusplot(ax, G, Kp([1 end],i), 'r-+');
-        rlocusplot(ax, G, Kp(2,i), 'bs');
+        rlocusplot(ax, sys, Kp([1 end],i), 'r-+');
+        rlocusplot(ax, sys, Kp(2,i), 'bs');
         hold('off');
         
         % Plot step response.
         f = figure();
         ax = axes(f);
         stepplot(ax, ...
-            feedback(series(Kp(1,i), G), 1), 'r--',...
-            feedback(series(Kp(3,i), G), 1), 'r--',...
-            feedback(series(Kp(2,i), G), 1), 'k');
+            feedback(series(Kp(1,i), sys), 1), 'r--',...
+            feedback(series(Kp(3,i), sys), 1), 'r--',...
+            feedback(series(Kp(2,i), sys), 1), 'k');
         ax.YLim = [0 1.4];
         hold('on');
         
@@ -113,7 +121,7 @@ for i = 1:length(spec)
             'LineStyle', '-.');
         
         % Rise time condition
-        [Y,T] = step(feedback(series(Kp(1,i), G), 1));
+        [Y,T] = step(feedback(series(Kp(1,i), sys), 1));
         t01 = interp1(Y,T,0.1);
         t02 = t01 + spec(i).RiseTime;
         y = [0.1 0.9
@@ -127,12 +135,12 @@ for i = 1:length(spec)
     end
 end
 
-if nargin >= 1
+if nargin >= 2
     mkdir(dirout);
     
     % Write root locus to file for use in pgf plots
-    [~,k] = rlocus(G);
-    [r,k] = rlocus(G, sort([k Kp(:)']));
+    [~,k] = rlocus(sys);
+    [r,k] = rlocus(sys, sort([k Kp(:)']));
     rloc = ones(size(k,2), size(k,1) + 2*size(r,1));
     rloc(:,1:size(k,1)) = k';
     header = 'K';
@@ -142,7 +150,7 @@ if nargin >= 1
         header = sprintf('%s\tim%d', header, j);
         rloc(:,size(k,1)+2*j) = imag(r(j,:))';
     end
-    fname = [dirout '/rlocus.dat'];
+    fname = [dirout '/rlocus' suffix '.dat'];
     fid = fopen(fname, 'wt');
     fprintf(fid, '%s\n', header);
     fclose(fid);
@@ -150,16 +158,16 @@ if nargin >= 1
 
     % Write step responses to file for use in pgfplots
     t = 0:1e-2:20;
-    Gc = sort([1; Kp(:)]);
-    stepres = ones(length(t),1 + length(Gc));
+    Kc = sort([1; Kp(:)]);
+    stepres = ones(length(t),1 + length(Kc));
     stepres(:,1) = t';
     header = 't';
-    for j = 1:length(Gc)
-        header = sprintf('%s\ty%.1f', header, Gc(j));
-        y = step(feedback(series(Gc(j), G), 1), t);
+    for j = 1:length(Kc)
+        header = sprintf('%s\ty%.1f', header, Kc(j));
+        y = step(feedback(series(Kc(j), sys), 1), t);
         stepres(:,1+j) = y';
     end
-    fname = [dirout '/stepres.dat'];
+    fname = [dirout '/stepres' suffix '.dat'];
     fid = fopen(fname, 'wt');
     fprintf(fid, '%s\n', header);
     fclose(fid);
