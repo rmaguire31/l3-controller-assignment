@@ -1,17 +1,17 @@
 function [Kp] = find_p_controller(Gc, dirout, suffix)
 %% FIND_P_CONTROLLER Find Kp value of controller
 %   Detailed explanation goes here
-
-s = tf('s');
-G = (s + 1)/(s*(s^2 + 4*s + 5));
-if nargin >= 1
-    sys = series(Gc, G);
-else
-    sys = G;
+if nargin < 1
+    Gc = 1;
 end
 if nargin < 3
     suffix = [];
 end
+
+s = tf('s');
+G = (s + 1)/(s*(s^2 + 4*s + 5));
+Gc = Gc/dcgain(Gc);
+sys_ol = series(Gc, G);
 
 % Perfomance spec
 spec = struct(...
@@ -41,7 +41,7 @@ for i = 1:length(spec)
     
     for Kc = 5:1e-1:400
         % Analyse step response of compensated system
-        sys0 = feedback(series(Kc, sys), 1);
+        sys = feedback(series(Kc, sys_ol), 1);
         info = stepinfo(sys0);
         info.SSE= 100*abs(dcgain(sys0) - 1);
         
@@ -65,7 +65,7 @@ for i = 1:length(spec)
         % Plot pole locations.
         f = figure();
         ax = axes(f);
-        rlocusplot(ax, sys, 'k');
+        rlocusplot(ax, G, 'k');
         ax.XLim = [-2.5 0];
         ax.YLim = [-5 5];
         hold('on');
@@ -77,9 +77,9 @@ for i = 1:length(spec)
         f = figure();
         ax = axes(f);
         stepplot(ax, ...
-            feedback(series(Kp(1,i), sys), 1), 'r--',...
-            feedback(series(Kp(3,i), sys), 1), 'r--',...
-            feedback(series(Kp(2,i), sys), 1), 'k');
+            feedback(series(Kp(1,i), sys_ol), 1), 'r--',...
+            feedback(series(Kp(3,i), sys_ol), 1), 'r--',...
+            feedback(series(Kp(2,i), sys_ol), 1), 'k');
         ax.YLim = [0 1.4];
         hold('on');
         
@@ -121,7 +121,7 @@ for i = 1:length(spec)
             'LineStyle', '-.');
         
         % Rise time condition
-        [Y,T] = step(feedback(series(Kp(1,i), sys), 1));
+        [Y,T] = step(feedback(series(Kp(1,i), sys_ol), 1));
         t01 = interp1(Y,T,0.1);
         t02 = t01 + spec(i).RiseTime;
         y = [0.1 0.9
@@ -139,8 +139,8 @@ if nargin >= 2
     mkdir(dirout);
     
     % Write root locus to file for use in pgf plots
-    [~,k] = rlocus(sys);
-    [r,k] = rlocus(sys, sort([k Kp(:)']));
+    [~,k] = rlocus(sys_ol);
+    [r,k] = rlocus(sys_ol, sort([k Kp(:)']));
     rloc = ones(size(k,2), size(k,1) + 2*size(r,1));
     rloc(:,1:size(k,1)) = k';
     header = 'K';
