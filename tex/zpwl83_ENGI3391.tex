@@ -109,7 +109,7 @@
     \renewcommand{\abstractname}{\large Abstract}
     \vspace{-3\parsep}
     \begin{abstract}
-        This report describes the design and characteristics of P, PD, PID and phase-lead controllers for an type I, III order industrial plant process in \Matlab. Controllers were designed to meet one of two performance specifications. After comparison it was concluded that PD controllers achieved the best performance.
+        This report explores the design and characteristics of P, PD, PID and phase-lead controllers for a type I, III order industrial plant process in \Matlab. Controllers were designed to meet one of two performance specifications. After comparison it was concluded that PD controllers achieved the best performance.
     \end{abstract}
     \vspace{\parsep}
 \end{@twocolumnfalse}
@@ -117,7 +117,7 @@
 
 % Acronyms
 % Lowercase latin
-\nomenclature[1e]{$e(\infty)$}{Steady state error\hfill[\si{\%}]}
+\nomenclature[1e]{$e(\infty)$}{Steady-state error\hfill[\si{\%}]}
 \nomenclature[1s]{$s$}{Laplace domain variable\hfill[\si{\radian\per\second}]}
 \nomenclature[1pc]{$p$}{Pole in Laplace domain\hfill[\si{\radian\per\second}]}
 \nomenclature[1t]{$t$}{Time domain variable\hfill[\si{\second}]}
@@ -196,7 +196,7 @@ Figure~\ref{fig:closed} illustrates a closed loop system. The controller is desi
 	\label{fig:closed}
 \end{figure}
 
-The controller gain factor $K_c$ is a key design parameter and its effect on the system poles can be represented by the root locus. Each point on the root locus satisfies the angle criterion:
+The controller gain factor $K_c$ is a key design parameter and its effect on the system poles can be represented by the root locus. Each point on the root locus satisfies the angle criterion, given by Dorf et al. \cite[p.~447]{dorf2010modern} as:
 \begin{equation} \label{eq:angle} \textstyle % For the smaller \sum symbols
 	\sum_i\angle\left(s-p_i\right) -\sum_j\angle\left(s-z_j\right) \equiv \pi \mod 2\pi
 \end{equation}
@@ -208,31 +208,31 @@ where $K$ is the gain factor of the plant process transfer function.
 
 \subsection{Performance}
 
-For low frequency applications the controller performance can be characterised by analysing the step response.
+For low frequency applications the controller performance can be characterised by analysing the step response, which can be predicted using the following equations laid out in by Ogata et al. \cite[pp.~231--233]{ogata2002modern}.
 
 Overshoot $M_0$ is the the peak response in proportion to the final output value and is soley dependent on the damping factor $\zeta$ for second order systems:
-\begin{equation} \label{eq:overshoot2nd}
+\begin{equation} \label{eq:overshoot2nd} \textstyle
 	M_0 = \exp\left(-\frac{\pi\zeta}{\sqrt{1-\zeta^2}}\right)
 	\footnote{Equality holds for second order systems only, but may be used to approximate higher order characteristics.}
 \end{equation}
-The settling time $T_s$ of the controller is the time for the output oscillations to decay to within some margin of the final value: \SI{2}{\%} is used in this report. Settling time is also dependent on the natural frequency $\omega_n$:
-\begin{equation} \label{eq:settling2nd}
+The settling time $T_s$ of the controller is the time for the output oscillations to decay to within some margin of the final value. Settling time is also dependent on the natural frequency $\omega_n$:
+\begin{equation} \label{eq:settling2nd} \textstyle
 	T_s = -\frac{\ln\left(2\%\right)}{\zeta\omega_n} \approx \frac{4}{\zeta\omega_n}
 	\footnotemark[\value{footnote}]
 \end{equation}
 The rise time $T_r$ of the controller is the time for the output to transition from \SIrange{10}{90}{\%} of the final value:
-\begin{equation} \label{eq:rise2nd}
-	T_r = \frac{\ln\left(90\%/10\%\right)}{\zeta\omega_n} \approx \frac{2.2}{\zeta\omega_n}
+\begin{equation} \label{eq:rise2nd} \textstyle
+	T_r \leq \frac{\ln\left(90\%/10\%\right)}{\zeta\omega_n} \approx \frac{2.2}{\zeta\omega_n}
 	\footnotemark[\value{footnote}]
 \end{equation}
 These three parameters are typically specified as upper bounds and constitute the dynamic specification.
 
-The steady state error $e(\infty)$ for a step input is defined and determined as follows:
-\begin{align}
+The steady state error $e(\infty)$ for a step input is defined and given in \cite[p.~290]{ogata2002modern} as follows:
+\begin{align} \textstyle
 	e(\infty) \coloneqq& \lim_{t \rightarrow \infty}e(t) \label{eq:sse_def} \\
 	=&
-	\begin{cases} \displaystyle 
-		\frac{1}{\displaystyle 1 + \lim_{s \rightarrow +0}G_c(s)G(s)}, &\operatorname{type}~0 \\
+	\begin{cases}
+		\frac{1}{1 + \displaystyle\lim_{s \rightarrow +0}G_c(s)G(s)}, &\operatorname{type}~0 \\
 		0, &\operatorname{otherwise}
 	\end{cases} \label{eq:sse}
 \end{align}
@@ -242,7 +242,7 @@ In controller design there is a tradeoff between the dynamic specification and t
 
 \subsection{PID Control}
 
-One of the most common types of controller in industry is the PID controller, which can be easily implemented using microcontrollers. Figure~\ref{fig:pid} shows how a PID controller is composed.
+One of the most common types of controller in industry is the PID controller, which can be easily implemented using microcontrollers. Figure~\ref{fig:pid} shows how a PID controller is composed in~\cite[p.~480]{dorf2010modern}.
 
 \begin{figure}[h!]
 	\centering
@@ -291,11 +291,11 @@ Consequently, an equivalent form of the controller in Figure~\ref{fig:pid} is as
 	G_c(s) = K_p\left(1 + \frac{1}{T_i \cdot s} + T_d \cdot s\right)
 \end{equation}
 
-In any controller, the proportional gain $K_p$ is used to set the tradeoff between overshoot and speed. A faster system has a short rise and settling time but greater overshoot, achieved with a larger gain.
+In any controller, the proportional gain $K_p$ is used to set the tradeoff between overshoot and speed. Acording to \cite[p.~483]{dorf2010modern}, a faster system has a slightly shorter rise and settling time but greater overshoot, achieved with a larger gain.
 
 Increasing the contribution of the integrator term improves the steady-state performance at the expense of the dynamic performance. Generally, controllers with short $T_i$ have greater overshoot, longer rise and settling time but smaller steady-state error.
 
-Increasing the contribution of the differentiator term improves the dynamic performance at the expense of the steady-state performance. Generally, controllers with large $T_d$ have smaller overshoot, shorter rise and settling time but greater steady-state error.
+Increasing the contribution of the differentiator term improves the dynamic performance at the expense of the steady-state performance. Generally, controllers with large $T_d$ have smaller overshoot, shorter rise and settling time.
 
 Some variations of the PID controller are named as follows:
 \begin{itemize} \itemsep0pt
@@ -306,7 +306,7 @@ Some variations of the PID controller are named as follows:
 
 \subsection{Phase Compensation}
 
-Practical phase compensation involves adding real pole-zero pairs close to the origin to improve steady-state performance (phase-lag compensation) or left of the uncompensated root locus to improve dynamic peformance (phase-lead compensation) or both (lag-lead compenation). Figure~\ref{fig:phase} illustrates the block diagram of the compensator.
+Practical phase compensation involves adding real pole-zero pairs close to the origin to improve steady-state performance (phase-lag compensation) or left of the uncompensated root locus to improve dynamic peformance (phase-lead compensation) or both (lag-lead compenation). Figure~\ref{fig:phase} illustrates the block diagram of the compensator, similar to the designs specified in \cite[pp.~421--423]{ogata2002modern}.
 
 \begin{figure}[h!]
 	\centering
@@ -1070,7 +1070,7 @@ Table~\ref{tab:pid} lists the performance characteristics of the P, PD and PID c
 The overshoot of each controller was similar by design, but the corresponding rise and settling times were significantly better for the PD controller than the baseline P controller. 
 The derivative term controlled the output by predicting future error, avoiding overshoot, making the transient more robust.
 
-The integral term in PID controllers had little additional effect, as the plant process already contained an integrator. The integral term slowed the transient response but had no effect on the already perfect steady-state error. This behaviour was consistent with other type I systems, such as servo-motors, where the velocity of the motor is varied in order to set the servo position. For such applications, PD controllers are common as their decreased complexity results in comparable or better performance.
+The integral term in PID controllers had little additional effect, as the plant process already contained an integrator. The integral term slowed the transient response but had no effect on the already perfect steady-state error. This behaviour was consistent with other type I systems, such as the servo-motors described in \cite[pp.~235--236]{dorf2010modern}, where the velocity of the motor is varied in order to set the servo position. For such applications, PD controllers are common as their decreased complexity results in comparable or better performance.
 
 For similar reasons PD controllers outperformed phase-lead compensators. Practical phase-lead compensators have a real pole, which behaves as a low pass filter, much like an integrator. A PD controller is an ideal phase-lead compensator as the real pole is omitted.
 
@@ -1092,6 +1092,8 @@ The PD controllers outperformed the P controller, as the derivative term limited
 \section{Controller Derivations} \label{app:derive}
 
 \subsection{P Controller/Gain Compensator}
+
+The P controller was found by increasing the controller gain $K_c$ or $K_p$ in steps of 0.1 until the rise and settling time specifications were satisfied. The gain continued to be increased until the overshoot specifications were violated. The median gain was chosen for the controller, allowing for a margin of safety.
 
 \subsection{Phase-lead Compensator} \label{app:lead}
 
@@ -1403,11 +1405,22 @@ The magnitude criterion given in \eqref{eq:magnitude} was used to find the contr
 
 \subsection{PID Tuning}
 
-\begin{figure}[h]
+Figure~\ref{fig:pid_tune} captures how precision is the only limitation to the performance of the PD controller for a type I system, where steady-state error is not a concern.
+
+\begin{figure}[h!]
 	\centering
 	\includegraphics[width=0.5\textwidth]{img/pid_tune.png}
-	\caption{}
+	\caption{Demonstration of the arbitrary precision choice when tuing PID controllers using \Matlab \sisotool.}
 	\label{fig:pid_tune}
+\end{figure}
+
+So P, PD and PID controllers could be compared, the default `response time' parameter was used---\SI{0.1836}{\second}. Transient behaviour was varied until the overshoot was similar to that achieved by the gain and phase-lead compensators. This process can be seen in Figure~\ref{fig:pid_tune2}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.5\textwidth]{img/pid_tune2.png}
+	\caption{Tuning PID controllers with fixed `response time' using \Matlab \sisotool.}
+	\label{fig:pid_tune2}
 \end{figure}
 
 \end{document}
